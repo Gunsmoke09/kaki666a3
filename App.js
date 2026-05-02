@@ -1,228 +1,78 @@
-import { useCallback, useEffect, useState } from 'react';
-import {
-  ActivityIndicator,
-  Linking,
-  Pressable,
-  SafeAreaView,
-  ScrollView,
-  Share,
-  StyleSheet,
-  Text,
-  View,
-} from 'react-native';
+import { useEffect, useMemo, useState } from 'react';
+import { Linking, Pressable, SafeAreaView, StyleSheet, Text, View } from 'react-native';
 import { StatusBar } from 'expo-status-bar';
-import { getTutorialById, getTutorials } from './services/tutorialService';
+import HomeScreen from './screens/HomeScreen';
+import LoginScreen from './screens/LoginScreen';
+import RegisterScreen from './screens/RegisterScreen';
+import TutorialsScreen from './screens/TutorialsScreen';
+import TutorialDetailScreen from './screens/TutorialDetailScreen';
+import CategoriesScreen from './screens/CategoriesScreen';
+import MaterialsScreen from './screens/MaterialsScreen';
 
-const APP_BASE_URL = 'kaki666://tutorials';
+const TABS = ['Home', 'Tutorials', 'Categories', 'Materials', 'Login', 'Register'];
 
-function getIdFromUrl(url) {
+function getTutorialIdFromUrl(url) {
   if (!url) return null;
-
   try {
     const parsed = new URL(url);
-    const parts = parsed.pathname.split('/').filter(Boolean);
-
-    if (parts[0] === 'tutorials' && parts[1]) {
-      return parts[1];
-    }
-  } catch (error) {
+    const paths = parsed.pathname.split('/').filter(Boolean);
+    if (parsed.host === 'tutorials' && paths[0]) return paths[0];
+    if (paths[0] === 'tutorials' && paths[1]) return paths[1];
+  } catch (e) {
     return null;
   }
-
   return null;
 }
 
 export default function App() {
-  const [tutorials, setTutorials] = useState([]);
-  const [selectedTutorial, setSelectedTutorial] = useState(null);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState('');
-  const [shareError, setShareError] = useState('');
-
-  const loadTutorials = useCallback(async () => {
-    try {
-      setLoading(true);
-      setError('');
-      const data = await getTutorials();
-      setTutorials(data);
-    } catch (apiError) {
-      setError('Unable to load tutorials right now. Please try again.');
-    } finally {
-      setLoading(false);
-    }
-  }, []);
-
-  const openTutorialById = useCallback(async (id) => {
-    try {
-      setLoading(true);
-      setError('');
-      const tutorial = await getTutorialById(id);
-      setSelectedTutorial(tutorial);
-    } catch (apiError) {
-      setSelectedTutorial(null);
-      setError('Unable to open that tutorial link.');
-    } finally {
-      setLoading(false);
-    }
-  }, []);
+  const [activeTab, setActiveTab] = useState('Home');
+  const [tutorialId, setTutorialId] = useState(null);
 
   useEffect(() => {
-    loadTutorials();
-  }, [loadTutorials]);
-
-  useEffect(() => {
-    const handleIncomingUrl = async ({ url }) => {
-      const id = getIdFromUrl(url);
+    const onReceiveUrl = ({ url }) => {
+      const id = getTutorialIdFromUrl(url);
       if (id) {
-        await openTutorialById(id);
+        setTutorialId(id);
+        setActiveTab('TutorialDetail');
       }
     };
 
-    const subscription = Linking.addEventListener('url', handleIncomingUrl);
+    const sub = Linking.addEventListener('url', onReceiveUrl);
+    Linking.getInitialURL().then((url) => onReceiveUrl({ url }));
+    return () => sub.remove();
+  }, []);
 
-    Linking.getInitialURL().then(async (url) => {
-      const id = getIdFromUrl(url);
-      if (id) {
-        await openTutorialById(id);
-      }
-    });
-
-    return () => subscription.remove();
-  }, [openTutorialById]);
-
-  const handleSelectTutorial = async (id) => {
-    await openTutorialById(id);
-  };
-
-  const handleShare = async () => {
-    if (!selectedTutorial) return;
-
-    try {
-      setShareError('');
-      const deepLink = `${APP_BASE_URL}/${selectedTutorial.id}`;
-      const message = [
-        `Tutorial: ${selectedTutorial.title}`,
-        `Difficulty: ${selectedTutorial.difficulty}`,
-        `Average time: ${selectedTutorial.averageTime}`,
-        `Description: ${selectedTutorial.description}`,
-        `Open in app: ${deepLink}`,
-      ].join('\n');
-
-      await Share.share({
-        message,
-      });
-    } catch (sharingError) {
-      setShareError('Sharing failed. Please try again.');
-    }
-  };
+  const screen = useMemo(() => {
+    if (activeTab === 'Home') return <HomeScreen onOpen={setActiveTab} />;
+    if (activeTab === 'Login') return <LoginScreen />;
+    if (activeTab === 'Register') return <RegisterScreen />;
+    if (activeTab === 'Tutorials') return <TutorialsScreen onSelectTutorial={(id) => { setTutorialId(id); setActiveTab('TutorialDetail'); }} />;
+    if (activeTab === 'TutorialDetail') return <TutorialDetailScreen tutorialId={tutorialId} />;
+    if (activeTab === 'Categories') return <CategoriesScreen />;
+    if (activeTab === 'Materials') return <MaterialsScreen />;
+    return <HomeScreen onOpen={setActiveTab} />;
+  }, [activeTab, tutorialId]);
 
   return (
-    <SafeAreaView style={styles.screen}>
+    <SafeAreaView style={styles.container}>
       <StatusBar style="dark" />
-      {loading ? (
-        <View style={styles.centerContent}>
-          <ActivityIndicator size="large" />
-        </View>
-      ) : selectedTutorial ? (
-        <ScrollView contentContainerStyle={styles.content}>
-          <Text style={styles.title}>{selectedTutorial.title}</Text>
-          <Text style={styles.meta}>Difficulty: {selectedTutorial.difficulty}</Text>
-          <Text style={styles.meta}>Average time: {selectedTutorial.averageTime}</Text>
-          <Text style={styles.description}>{selectedTutorial.description}</Text>
-
-          <Pressable style={styles.primaryButton} onPress={handleShare}>
-            <Text style={styles.buttonText}>Share Tutorial</Text>
+      <View style={styles.content}>{screen}</View>
+      <View style={styles.tabBar}>
+        {TABS.map((tab) => (
+          <Pressable key={tab} onPress={() => setActiveTab(tab)} style={styles.tabButton}>
+            <Text style={[styles.tabText, activeTab === tab && styles.tabActive]}>{tab}</Text>
           </Pressable>
-
-          <Pressable style={styles.secondaryButton} onPress={() => setSelectedTutorial(null)}>
-            <Text style={styles.secondaryText}>Back to Tutorials</Text>
-          </Pressable>
-
-          {!!shareError && <Text style={styles.errorText}>{shareError}</Text>}
-          {!!error && <Text style={styles.errorText}>{error}</Text>}
-        </ScrollView>
-      ) : (
-        <ScrollView contentContainerStyle={styles.content}>
-          <Text style={styles.heading}>Tutorials</Text>
-          {tutorials.map((item) => (
-            <Pressable key={item.id} style={styles.card} onPress={() => handleSelectTutorial(item.id)}>
-              <Text style={styles.cardTitle}>{item.title}</Text>
-              <Text style={styles.meta}>{item.difficulty} • {item.averageTime}</Text>
-            </Pressable>
-          ))}
-
-          {!!error && <Text style={styles.errorText}>{error}</Text>}
-        </ScrollView>
-      )}
+        ))}
+      </View>
     </SafeAreaView>
   );
 }
 
 const styles = StyleSheet.create({
-  screen: {
-    flex: 1,
-    backgroundColor: '#f8fafc',
-  },
-  centerContent: {
-    flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  content: {
-    padding: 16,
-    gap: 12,
-  },
-  heading: {
-    fontSize: 26,
-    fontWeight: '700',
-  },
-  title: {
-    fontSize: 24,
-    fontWeight: '700',
-  },
-  meta: {
-    fontSize: 15,
-    color: '#334155',
-  },
-  description: {
-    fontSize: 16,
-    color: '#0f172a',
-    lineHeight: 22,
-    marginTop: 4,
-  },
-  card: {
-    backgroundColor: '#fff',
-    borderRadius: 10,
-    padding: 14,
-  },
-  cardTitle: {
-    fontSize: 18,
-    fontWeight: '600',
-    marginBottom: 4,
-  },
-  primaryButton: {
-    backgroundColor: '#0ea5e9',
-    paddingVertical: 12,
-    borderRadius: 10,
-    alignItems: 'center',
-    marginTop: 12,
-  },
-  secondaryButton: {
-    paddingVertical: 12,
-    borderRadius: 10,
-    alignItems: 'center',
-    backgroundColor: '#e2e8f0',
-  },
-  buttonText: {
-    color: '#fff',
-    fontWeight: '700',
-  },
-  secondaryText: {
-    color: '#1e293b',
-    fontWeight: '600',
-  },
-  errorText: {
-    color: '#b91c1c',
-    fontSize: 14,
-  },
+  container: { flex: 1, backgroundColor: '#f8fafc' },
+  content: { flex: 1 },
+  tabBar: { flexDirection: 'row', flexWrap: 'wrap', borderTopWidth: 1, borderTopColor: '#cbd5e1', paddingVertical: 8, justifyContent: 'center' },
+  tabButton: { paddingHorizontal: 10, paddingVertical: 6 },
+  tabText: { color: '#334155', fontSize: 12 },
+  tabActive: { color: '#0284c7', fontWeight: '700' },
 });
