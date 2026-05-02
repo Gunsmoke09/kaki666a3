@@ -1,8 +1,8 @@
-const API_BASE_URL = process.env.EXPO_PUBLIC_API_BASE_URL || 'http://192.168.1.100:4000/api';
+const API_BASE_URL = process.env.EXPO_PUBLIC_API_BASE_URL || 'https://koala04.ifn666.com/assignment2/api';
 
 function buildFriendlyError(error) {
   if (error?.message?.includes('Network request failed')) {
-    return new Error('Cannot connect to the server. Check that the API is running and EXPO_PUBLIC_API_BASE_URL points to your computer\'s local network IP.');
+    return new Error('Cannot connect to the server right now. Please check your internet connection and try again.');
   }
 
   return error;

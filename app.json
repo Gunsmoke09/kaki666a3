@@ -7,6 +7,7 @@
     "icon": "./assets/icon.png",
     "userInterfaceStyle": "light",
     "newArchEnabled": true,
+    "scheme": "kaki666",
     "splash": {
       "image": "./assets/splash-icon.png",
       "resizeMode": "contain",
@@ -15,7 +16,7 @@
     "ios": {
       "supportsTablet": true,
       "associatedDomains": [
-        "applinks:ifn666.com"
+        "applinks:koala04.ifn666.com"
       ]
     },
     "android": {
@@ -31,7 +32,7 @@
           "data": [
             {
               "scheme": "https",
-              "host": "ifn666.com",
+              "host": "koala04.ifn666.com",
               "pathPrefix": "/tutorials"
             }
           ],
@@ -44,7 +45,6 @@
     },
     "web": {
       "favicon": "./assets/favicon.png"
-    },
-    "scheme": "kaki666"
+    }
   }
 }
