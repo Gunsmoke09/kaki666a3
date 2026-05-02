@@ -13,14 +13,13 @@ const TABS = ['Home', 'Tutorials', 'Categories', 'Materials', 'Login', 'Register
 
 function getTutorialIdFromUrl(url) {
   if (!url) return null;
-  try {
-    const parsed = new URL(url);
-    const paths = parsed.pathname.split('/').filter(Boolean);
-    if (parsed.host === 'tutorials' && paths[0]) return paths[0];
-    if (paths[0] === 'tutorials' && paths[1]) return paths[1];
-  } catch (e) {
-    return null;
-  }
+
+  const schemeMatch = url.match(/^kaki666:\/\/tutorials\/([^/?#]+)/i);
+  if (schemeMatch?.[1]) return decodeURIComponent(schemeMatch[1]);
+
+  const webMatch = url.match(/^https:\/\/koala04\.ifn666\.com\/tutorials\/([^/?#]+)/i);
+  if (webMatch?.[1]) return decodeURIComponent(webMatch[1]);
+
   return null;
 }
 
@@ -55,7 +54,7 @@ export default function App() {
 
   return (
     <SafeAreaView style={styles.container}>
-      <StatusBar style="dark" />
+      <StatusBar style='dark' />
       <View style={styles.content}>{screen}</View>
       <View style={styles.tabBar}>
         {TABS.map((tab) => (
