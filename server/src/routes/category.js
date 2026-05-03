@@ -1,0 +1,25 @@
+const express = require("express");
+
+const controller = require("../controllers/category");
+
+const validateMongoId = require("../middleware/validateMongoId");
+const authenticateWithJwt = require("../middleware/authenticateWithJwt");
+const validatePaginateQueryParams = require("../middleware/validatePaginateQueryParams");
+
+const router = express.Router();
+
+router.route("/")
+  .get(validatePaginateQueryParams, controller.list)
+  .post(authenticateWithJwt, controller.create);
+
+router.route("/:id/tutorials")
+  .all(validateMongoId("id"), validatePaginateQueryParams)
+  .get(controller.tutorials);
+
+router.route("/:id")
+  .all(validateMongoId("id"))
+  .get(controller.detail)
+  .put(authenticateWithJwt, controller.update)
+  .delete(authenticateWithJwt, controller.delete);
+
+module.exports = router;
